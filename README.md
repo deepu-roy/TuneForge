@@ -28,6 +28,54 @@ This will install:
 
 ## Quick Start: Automated Pipeline 🚀
 
+> **Note:** The automated pipeline (`train-and-convert.sh`) handles all these steps automatically and is the recommended approach.
+
+---
+
+## Testing Your Model
+
+### Test with Python
+
+Test the merged model directly with Python:
+
+```bash
+# Default test with sample prompt
+uv run python test.py
+
+# Custom prompt
+uv run python test.py --prompt "Write a poem about the moon"
+
+# Test a different model
+uv run python test.py --model outputs/merged/my-other-model
+
+# Adjust generation parameters
+uv run python test.py --max-tokens 100 --temperature 0.9
+
+# Get help
+uv run python test.py --help
+```
+
+**Available arguments:**
+
+- `--model` - Path to merged model directory (default: `outputs/merged/merged-fine-tuned-model`)
+- `--prompt` - Custom prompt to test (default: rhyme completion)
+- `--max-tokens` - Maximum tokens to generate (default: 50)
+- `--temperature` - Sampling temperature, 0 for greedy decoding (default: 0.7)
+
+### Test with Ollama
+
+After running the pipeline, test with Ollama:
+
+```bash
+# The pipeline auto-generates the Modelfile
+ollama create my-model -f Modelfile
+ollama run my-model "Write a rhyme about stars"
+```
+
+---
+
+## Quick Start: Automated Pipeline 🚀
+
 **The recommended way to fine-tune a model is using the automated pipeline script `train-and-convert.sh`.** This script handles the entire workflow from training to deployment with a single command.
 
 ### What the Pipeline Does
@@ -334,7 +382,9 @@ ollama create twinkle -f Modelfile
 ollama run twinkle "Complete the rhyme: Twinkle, twinkle, little star,"
 ```
 
-## Project Structure
+---
+
+## Project Files
 
 ```text
 .
