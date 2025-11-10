@@ -1,4 +1,5 @@
 import os
+import argparse
 from datasets import load_dataset
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -7,15 +8,86 @@ from peft import LoraConfig, get_peft_model  # type: ignore
 from datasets import Dataset
 
 #
+# ---- Parse Arguments ----
+parser = argparse.ArgumentParser(description="Fine-tune TinyLlama with LoRA")
+parser.add_argument(
+    "--train-data",
+    type=str,
+    default=None,
+    help="Path to training data JSONL file (default: data/train.jsonl)",
+)
+parser.add_argument(
+    "--output-dir",
+    type=str,
+    default=None,
+    help="Output directory for the fine-tuned model (default: outputs/adaptor/fine-tuned-model-mps)",
+)
+parser.add_argument(
+    "--base-model",
+    type=str,
+    default="TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+    help="Base model to fine-tune (default: TinyLlama/TinyLlama-1.1B-Chat-v1.0)",
+)
+parser.add_argument(
+    "--max-seq-length",
+    type=int,
+    default=512,
+    help="Maximum sequence length (default: 512)",
+)
+parser.add_argument(
+    "--epochs",
+    type=int,
+    default=3,
+    help="Number of training epochs (default: 3)",
+)
+parser.add_argument(
+    "--learning-rate",
+    type=float,
+    default=2e-4,
+    help="Learning rate (default: 2e-4)",
+)
+
+args = parser.parse_args()
+
 # ---- Config ----
-base_model = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+base_model = args.base_model
 
 # Get the script directory and construct absolute paths
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(script_dir)
-train_path = os.path.join(project_root, "data", "train.jsonl")
-output_dir = os.path.join(project_root, "outputs", "twinkle-lora-mps")
-max_len = 512
+
+# Use provided train path or default
+if args.train_data:
+    train_path = (
+        args.train_data
+        if os.path.isabs(args.train_data)
+        else os.path.join(os.getcwd(), args.train_data)
+    )
+else:
+    train_path = os.path.join(project_root, "data", "train.jsonl")
+
+# Use provided output dir or default
+if args.output_dir:
+    output_dir = (
+        args.output_dir
+        if os.path.isabs(args.output_dir)
+        else os.path.join(os.getcwd(), args.output_dir)
+    )
+else:
+    output_dir = os.path.join(
+        project_root, "outputs", "adaptor", "fine-tuned-model-mps"
+    )
+
+max_len = args.max_seq_length
+
+print("Training configuration:")
+print(f"  Base model: {base_model}")
+print(f"  Training data: {train_path}")
+print(f"  Output directory: {output_dir}")
+print(f"  Max sequence length: {max_len}")
+print(f"  Epochs: {args.epochs}")
+print(f"  Learning rate: {args.learning_rate}")
+print()
 
 # ---- Data ----
 # Ensure output directory exists
@@ -80,12 +152,12 @@ peft_cfg = LoraConfig(
 model = get_peft_model(model, peft_cfg)
 
 # ---- Train ----
-args = SFTConfig(
+training_args = SFTConfig(
     output_dir=output_dir,
     per_device_train_batch_size=2,  # keep small on Mac
     gradient_accumulation_steps=8,
-    num_train_epochs=3,
-    learning_rate=2e-4,
+    num_train_epochs=args.epochs,
+    learning_rate=args.learning_rate,
     lr_scheduler_type="cosine",
     warmup_ratio=0.03,
     logging_steps=10,
@@ -105,7 +177,7 @@ trainer = SFTTrainer(
     model=model,
     tokenizer=tokenizer,
     train_dataset=ds,
-    args=args,
+    args=training_args,
 )
 
 trainer.train()  # type: ignore

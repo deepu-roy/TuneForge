@@ -28,7 +28,44 @@ This will install:
 
 ## How to Fine-Tune a Base Model
 
-### 1. Prepare Training Data
+### Quick Start: Automated Pipeline
+
+Use the automated script to run the entire pipeline (train, merge, convert to GGUF):
+
+```bash
+./train-and-convert.sh --llama-cpp-path /path/to/llama.cpp
+```
+
+**Available options:**
+
+```bash
+./train-and-convert.sh \
+  --train-data data/train.jsonl \
+  --llama-cpp-path /path/to/llama.cpp \
+  --base-model TinyLlama/TinyLlama-1.1B-Chat-v1.0 \
+  --epochs 3 \
+  --learning-rate 2e-4 \
+  --max-seq-length 512 \
+  --adapter-output outputs/adaptor/fine-tuned-model-mps \
+  --merged-output outputs/merged/merged-fine-tuned-model \
+  --gguf-output outputs/gguf/fine-tuned-model-f16.gguf
+```
+
+**Skip steps:**
+
+```bash
+# Skip training, only merge and convert
+./train-and-convert.sh --skip-training --llama-cpp-path /path/to/llama.cpp
+
+# Skip GGUF conversion
+./train-and-convert.sh --skip-gguf
+```
+
+Run `./train-and-convert.sh --help` for all options.
+
+### Manual Steps
+
+#### 1. Prepare Training Data
 
 Create your training data in `./data/train.jsonl` with the following format:
 
@@ -41,29 +78,56 @@ Create your training data in `./data/train.jsonl` with the following format:
 
 Example data is already provided for training on "Twinkle Twinkle Little Star" rhymes.
 
-### 2. Run the Trainer
+#### 2. Run the Trainer
 
-Execute the training script:
+Execute the training script with default settings:
 
 ```bash
 uv run python src/trainer.py
 ```
 
-This will:
+Or customize with command-line arguments:
+
+```bash
+uv run python src/trainer.py \
+  --train-data data/train.jsonl \
+  --output-dir outputs/my-model \
+  --base-model TinyLlama/TinyLlama-1.1B-Chat-v1.0 \
+  --max-seq-length 512 \
+  --epochs 3 \
+  --learning-rate 2e-4
+```
+
+**Available Arguments:**
+
+- `--train-data` - Path to training data JSONL file (default: `data/train.jsonl`)
+- `--output-dir` - Output directory for the fine-tuned model (default: `outputs/adaptor/fine-tuned-model-mps`)
+- `--base-model` - Base model to fine-tune (default: `TinyLlama/TinyLlama-1.1B-Chat-v1.0`)
+- `--max-seq-length` - Maximum sequence length (default: `512`)
+- `--epochs` - Number of training epochs (default: `3`)
+- `--learning-rate` - Learning rate (default: `2e-4`)
+
+Use `--help` to see all options:
+
+```bash
+uv run python src/trainer.py --help
+```
+
+**What happens during training:**
 
 - Load the base model `TinyLlama/TinyLlama-1.1B-Chat-v1.0`
 - Apply LoRA adapters to enable efficient fine-tuning
 - Train on your dataset
-- Save the LoRA adapter to `outputs/twinkle-lora-mps/`
+- Save the LoRA adapter to the specified output directory
 
-**Configuration in `trainer.py`:**
+**Configuration:**
 
 - Uses MPS (Metal Performance Shaders) for Apple Silicon GPU acceleration
 - LoRA parameters: rank=16, alpha=32, dropout=0.05
-- Training: 3 epochs, batch size=2, learning rate=2e-4
+- Training: batch size=2, gradient accumulation=8
 - No deprecation warnings - uses modern `SFTConfig` API
 
-### 3. Test the Fine-Tuned Model
+#### 3. Test the Fine-Tuned Model
 
 Test the LoRA adapter with the base model:
 
@@ -71,7 +135,7 @@ Test the LoRA adapter with the base model:
 uv run python test.py
 ```
 
-### 4. Merge Adapter with Base Model
+#### 4. Merge Adapter with Base Model
 
 To create a standalone merged model (without needing the adapter separately):
 
@@ -79,7 +143,16 @@ To create a standalone merged model (without needing the adapter separately):
 uv run python src/merge.py
 ```
 
-This creates a merged model in `merged-twinkle-llama/` directory.
+Or with custom paths:
+
+```bash
+uv run python src/merge.py \
+  --base-model TinyLlama/TinyLlama-1.1B-Chat-v1.0 \
+  --adapter outputs/adaptor/fine-tuned-model-mps \
+  --output outputs/merged/merged-fine-tuned-model
+```
+
+This creates a merged model in `/output/fine-tuned-model/` directory.
 
 ## Creating GGUF Model for Ollama
 
@@ -96,10 +169,10 @@ pip install -r requirements.txt
 ### Convert to GGUF
 
 ```bash
-python llama.cpp/convert_hf_to_gguf.py \
+python convert_hf_to_gguf.py \
   --outtype f16 \
-  --model ./merged-twinkle-llama \
-  --outfile ./merged-twinkle-f16.gguf
+  --model ./fine-tuned-model \
+  --outfile ./fine-tuned-model-f16.gguf
 ```
 
 ## Run with Ollama
@@ -109,7 +182,7 @@ python llama.cpp/convert_hf_to_gguf.py \
 Create a `Modelfile` in the project root:
 
 ```
-FROM ./merged-twinkle-f16.gguf
+FROM ./fine-tuned-model-f16.gguf
 PARAMETER temperature 0.7
 PARAMETER top_p 0.9
 ```
@@ -129,23 +202,28 @@ ollama run twinkle "Complete the rhyme: Twinkle, twinkle, little star,"
 ```
 .
 ├── data/
-│   └── train.jsonl          # Training dataset
+│   └── train.jsonl               # Training dataset
 ├── src/
-│   ├── trainer.py           # Main training script
-│   └── merge.py             # Merge LoRA adapter with base model
+│   ├── trainer.py                # Main training script (with CLI args)
+│   └── merge.py                  # Merge LoRA adapter with base model (with CLI args)
 ├── outputs/
-│   └── twinkle-lora-mps/    # LoRA adapter output
-├── test.py                  # Test script for fine-tuned model
-├── pyproject.toml           # UV/Python dependencies
-└── README.md                # This file
+│   ├── adaptor/                  # LoRA adapter output
+│   ├── merged/                   # Merged model output
+│   └── gguf/                     # GGUF converted models
+├── train-and-convert.sh          # Automated pipeline script
+├── test.py                       # Test script for fine-tuned model
+├── pyproject.toml                # UV/Python dependencies
+└── README.md                     # This file
 ```
 
 ## Key Features
 
+✅ **Automated Pipeline** - Single script to train, merge, and convert to GGUF  
 ✅ **Modern APIs** - Uses `SFTConfig` instead of deprecated `TrainingArguments`  
 ✅ **Apple Silicon Optimized** - MPS support for GPU acceleration on Mac  
 ✅ **No Warnings** - Clean training output without deprecation warnings  
 ✅ **Efficient Training** - LoRA enables fine-tuning with minimal memory  
+✅ **Flexible CLI** - Fully configurable via command-line arguments  
 ✅ **Ollama Compatible** - Easy conversion to GGUF format  
 
 ## Notes

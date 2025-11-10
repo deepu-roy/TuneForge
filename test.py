@@ -1,7 +1,7 @@
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 
-ckpt = "outputs/twinkle-lora-mps"
+ckpt = "outputs/merged/merged-fine-tuned-model"
 tok = AutoTokenizer.from_pretrained(ckpt)
 mdl = AutoModelForCausalLM.from_pretrained(ckpt)
 device = "mps" if torch.backends.mps.is_available() else "cpu"

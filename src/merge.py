@@ -1,12 +1,46 @@
+import argparse
+import os
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import PeftModel  # type: ignore
 
-BASE = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"  # your base
-ADAPTER = "outputs/twinkle-lora-mps"  # your adapter folder
-OUT = "merged-twinkle-llama"  # output dir
+# Parse command line arguments
+parser = argparse.ArgumentParser(description="Merge LoRA adapter with base model")
+parser.add_argument(
+    "--base-model",
+    type=str,
+    default="TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+    help="Base model to merge with (default: TinyLlama/TinyLlama-1.1B-Chat-v1.0)",
+)
+parser.add_argument(
+    "--adapter",
+    type=str,
+    default="outputs/adaptor/fine-tuned-model-mps",
+    help="Path to adapter folder (default: outputs/adaptor/fine-tuned-model-mps)",
+)
+parser.add_argument(
+    "--output",
+    type=str,
+    default="outputs/merged/merged-fine-tuned-model",
+    help="Output directory for merged model (default: outputs/merged/merged-fine-tuned-model)",
+)
 
-dtype = torch.float16 if torch.backends.mps.is_available() else torch.float32
+args = parser.parse_args()
+
+BASE = args.base_model
+ADAPTER = args.adapter
+OUT = args.output
+
+print("Merge configuration:")
+print(f"  Base model: {BASE}")
+print(f"  Adapter: {ADAPTER}")
+print(f"  Output: {OUT}")
+print()
+
+# Create output directory if it doesn't exist
+os.makedirs(OUT, exist_ok=True)
+
+dtype = torch.float32 if torch.backends.mps.is_available() else torch.float32
 
 print("Loading base...")
 base = AutoModelForCausalLM.from_pretrained(BASE, torch_dtype=dtype)
