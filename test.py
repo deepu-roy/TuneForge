@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Test script for fine-tuned models.
-Usage: python test.py [--model MODEL_PATH] [--prompt PROMPT] [--max-tokens N]
+TuneForge - Test script for fine-tuned models
+Usage: tuneforge test --model MODEL_PATH --prompt PROMPT
+   or: python test.py --model MODEL_PATH --prompt PROMPT
 """
 
 import argparse

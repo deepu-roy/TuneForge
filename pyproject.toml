@@ -1,7 +1,7 @@
 [project]
-name = "fine-tuning-example"
+name = "tuneforge"
 version = "0.1.0"
-description = "Add your description here"
+description = "Automated pipeline for fine-tuning LLMs with LoRA and deploying to Ollama"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -12,3 +12,13 @@ dependencies = [
     "accelerate>=0.34",
     "trl>=0.9.6",
 ]
+
+[project.scripts]
+tuneforge = "tuneforge.cli:main"
+
+[tool.uv]
+package = true
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

@@ -1,8 +1,10 @@
 #!/bin/bash
 
-# Fine-tune, merge, and convert to GGUF pipeline script
+# TuneForge - Automated pipeline script
+# Fine-tune, merge, and convert to GGUF
 # Usage: ./train-and-convert.sh [options]
 # Or with config file: ./train-and-convert.sh --config config.env
+# Or use the CLI: tuneforge pipeline --config config.env
 
 set -e  # Exit on error
 
@@ -36,12 +38,15 @@ NC='\033[0m' # No Color
 # Help message
 show_help() {
     cat << EOF
+TuneForge - Automated Pipeline Script
 Usage: ./train-and-convert.sh [OPTIONS]
 
 This script runs the complete fine-tuning pipeline:
   1. Train the model with LoRA
   2. Merge the adapter with the base model
   3. Convert to GGUF format for Ollama
+
+Note: You can also use the CLI: tuneforge pipeline --config config.env
 
 Options:
   --config FILE              Load configuration from file (see config.env.example)

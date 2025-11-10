@@ -265,29 +265,6 @@ wheels = [
 ]
 
 [[package]]
-name = "fine-tuning-example"
-version = "0.1.0"
-source = { virtual = "." }
-dependencies = [
-    { name = "accelerate" },
-    { name = "datasets" },
-    { name = "peft" },
-    { name = "torch" },
-    { name = "transformers" },
-    { name = "trl" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "accelerate", specifier = ">=0.34" },
-    { name = "datasets", specifier = ">=2.20" },
-    { name = "peft", specifier = ">=0.12" },
-    { name = "torch" },
-    { name = "transformers", specifier = ">=4.44" },
-    { name = "trl", specifier = ">=0.9.6" },
-]
-
-[[package]]
 name = "frozenlist"
 version = "1.8.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1442,6 +1419,29 @@ dependencies = [
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a5/c3/6565c2c376a829f99da20d39c2912405195ec1fa6aae068dc45c46793e72/trl-0.9.6-py3-none-any.whl", hash = "sha256:4753f190c94c11488fcc46ec74b2128e53fbc61d51f0887b7204ec4dc333af4b", size = 245814, upload-time = "2024-07-08T13:38:47.094Z" },
+]
+
+[[package]]
+name = "tuneforge"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "accelerate" },
+    { name = "datasets" },
+    { name = "peft" },
+    { name = "torch" },
+    { name = "transformers" },
+    { name = "trl" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "accelerate", specifier = ">=0.34" },
+    { name = "datasets", specifier = ">=2.20" },
+    { name = "peft", specifier = ">=0.12" },
+    { name = "torch" },
+    { name = "transformers", specifier = ">=4.44" },
+    { name = "trl", specifier = ">=0.9.6" },
 ]
 
 [[package]]
