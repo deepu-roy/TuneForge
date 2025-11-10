@@ -1,0 +1,59 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+venv/
+env/
+ENV/
+
+# Model outputs and checkpoints
+outputs/
+checkpoints/
+runs/
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+
+# Model files (GGUF, GGML, etc.)
+*.gguf
+*.ggml
+*.gguf.*
+merged-*/
+model-file
+
+# Hugging Face cache
+.cache/
+huggingface/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment files
+.env
+.env.local
+
+# Lock files (optional - uncomment if you want to ignore)
+# uv.lock
+
+# Logs
+*.log
+wandb/
+tensorboard/
+
