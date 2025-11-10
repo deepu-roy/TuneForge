@@ -28,6 +28,7 @@ runs/
 *.gguf.*
 merged-*/
 model-file
+Modelfile
 
 # Hugging Face cache
 .cache/

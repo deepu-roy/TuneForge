@@ -26,46 +26,191 @@ This will install:
 - `accelerate>=0.34`
 - `trl>=0.9.6` (for SFTTrainer)
 
-## How to Fine-Tune a Base Model
+## Quick Start: Automated Pipeline 🚀
 
-### Quick Start: Automated Pipeline
+**The recommended way to fine-tune a model is using the automated pipeline script `train-and-convert.sh`.** This script handles the entire workflow from training to deployment with a single command.
 
-Use the automated script to run the entire pipeline (train, merge, convert to GGUF):
+### What the Pipeline Does
+
+The script automatically:
+
+1. ✅ Trains your model with LoRA adapters
+2. ✅ Merges the adapter with the base model
+3. ✅ Converts to GGUF format for Ollama
+4. ✅ Generates a ready-to-use Modelfile
+
+### Basic Usage
+
+#### Step 1: Create Your Configuration
+
+Copy and customize the example config:
 
 ```bash
-./train-and-convert.sh --llama-cpp-path /path/to/llama.cpp
+cp config.env.example config.env
 ```
 
-**Available options:**
+Edit `config.env` to set your preferences:
 
 ```bash
+# Model name (used in all output paths)
+MODEL_NAME="my-custom-model"
+
+# Training data
+TRAIN_DATA="data/train.jsonl"
+
+# Training parameters
+EPOCHS=3
+LEARNING_RATE=2e-4
+MAX_SEQ_LENGTH=512
+
+# GGUF quantization (f16, f32, q8_0, q4_0, etc.)
+GGUF_OUTTYPE="f16"
+
+# Path to llama.cpp (required for GGUF conversion)
+LLAMA_CPP_PATH="/path/to/llama.cpp"
+
+# Ollama Modelfile parameters
+MODELFILE_TEMPERATURE=1
+MODELFILE_TOP_P=0.9
+MODELFILE_REPEAT_PENALTY=1.05
+```
+
+#### Step 2: Run the Pipeline
+
+```bash
+./train-and-convert.sh --config config.env
+```
+
+That's it! The script will:
+
+- Train your model with the specified parameters
+- Merge the LoRA adapter with the base model
+- Convert to GGUF format
+- Generate a `Modelfile` with the correct path and parameters
+
+#### Step 3: Deploy to Ollama
+
+After the pipeline completes, deploy your model:
+
+```bash
+ollama create my-custom-model -f Modelfile
+ollama run my-custom-model "Your prompt here"
+```
+
+### Advanced Usage Examples
+
+#### Using Command-Line Arguments Only
+
+```bash
+# Minimal - uses defaults for most settings
 ./train-and-convert.sh \
-  --train-data data/train.jsonl \
-  --llama-cpp-path /path/to/llama.cpp \
+  --model-name rhyme-generator \
+  --llama-cpp-path /path/to/llama.cpp
+
+# Full customization
+./train-and-convert.sh \
+  --model-name sql-expert \
+  --train-data data/sql_training.jsonl \
   --base-model TinyLlama/TinyLlama-1.1B-Chat-v1.0 \
-  --epochs 3 \
-  --learning-rate 2e-4 \
-  --max-seq-length 512 \
-  --adapter-output outputs/adaptor/fine-tuned-model-mps \
-  --merged-output outputs/merged/merged-fine-tuned-model \
-  --gguf-output outputs/gguf/fine-tuned-model-f16.gguf
+  --epochs 5 \
+  --learning-rate 1e-4 \
+  --max-seq-length 1024 \
+  --gguf-outtype q8_0 \
+  --llama-cpp-path /path/to/llama.cpp
 ```
 
-**Skip steps:**
+#### Mixing Config File with Overrides
 
 ```bash
-# Skip training, only merge and convert
-./train-and-convert.sh --skip-training --llama-cpp-path /path/to/llama.cpp
+# Use config.env but override specific settings
+./train-and-convert.sh --config config.env --epochs 5 --gguf-outtype q4_0
 
-# Skip GGUF conversion
-./train-and-convert.sh --skip-gguf
+# Override model name for a different variant
+./train-and-convert.sh --config config.env --model-name my-model-v2
 ```
 
-Run `./train-and-convert.sh --help` for all options.
+#### Skip Steps (Partial Pipeline)
 
-### Manual Steps
+```bash
+# Only merge and convert (skip training)
+./train-and-convert.sh --config config.env --skip-training
 
-#### 1. Prepare Training Data
+# Only training and merging (skip GGUF conversion)
+./train-and-convert.sh --config config.env --skip-gguf
+
+# Only convert existing merged model to GGUF
+./train-and-convert.sh \
+  --skip-training \
+  --skip-merge \
+  --merged-output outputs/merged/my-existing-model \
+  --llama-cpp-path /path/to/llama.cpp
+```
+
+#### Multiple Quantization Versions
+
+Create multiple GGUF files with different quantizations:
+
+```bash
+# Create f16 version (high quality)
+./train-and-convert.sh --config config.env --skip-training --gguf-outtype f16
+
+# Create q8_0 version (smaller, good quality)
+./train-and-convert.sh --config config.env --skip-training --skip-merge --gguf-outtype q8_0
+
+# Create q4_0 version (smallest, faster inference)
+./train-and-convert.sh --config config.env --skip-training --skip-merge --gguf-outtype q4_0
+```
+
+### Pipeline Output
+
+After successful completion, you'll have:
+
+```text
+outputs/
+├── adaptor/
+│   └── my-custom-model-mps/     # LoRA adapter
+├── merged/
+│   └── merged-my-custom-model/  # Merged model
+└── gguf/
+    └── my-custom-model-f16.gguf # GGUF for Ollama
+
+Modelfile                        # Auto-generated, ready to use
+```
+
+### Configuration Variables Reference
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `MODEL_NAME` | Base name for your model (used in all paths) | `fine-tuned-model` |
+| `TRAIN_DATA` | Path to training JSONL file | `data/train.jsonl` |
+| `BASE_MODEL` | HuggingFace model ID | `TinyLlama/TinyLlama-1.1B-Chat-v1.0` |
+| `EPOCHS` | Number of training epochs | `3` |
+| `LEARNING_RATE` | Learning rate | `2e-4` |
+| `MAX_SEQ_LENGTH` | Maximum sequence length | `512` |
+| `GGUF_OUTTYPE` | Quantization type (f32, f16, q8_0, q4_0, etc.) | `f16` |
+| `LLAMA_CPP_PATH` | Path to llama.cpp directory | (empty - required for GGUF) |
+| `MODELFILE_TEMPERATURE` | Ollama temperature parameter | `1` |
+| `MODELFILE_TOP_P` | Ollama top_p parameter | `0.9` |
+| `MODELFILE_REPEAT_PENALTY` | Ollama repeat penalty | `1.05` |
+| `SKIP_TRAINING` | Skip training step | `false` |
+| `SKIP_MERGE` | Skip merge step | `false` |
+| `SKIP_GGUF` | Skip GGUF conversion | `false` |
+
+### Get Help
+
+View all available options:
+
+```bash
+./train-and-convert.sh --help
+```
+
+---
+
+## Manual Steps (Advanced)
+
+If you prefer to run each step manually instead of using the automated pipeline:
+
+### 1. Prepare Training Data
 
 Create your training data in `./data/train.jsonl` with the following format:
 
@@ -78,7 +223,7 @@ Create your training data in `./data/train.jsonl` with the following format:
 
 Example data is already provided for training on "Twinkle Twinkle Little Star" rhymes.
 
-#### 2. Run the Trainer
+### 2. Run the Trainer
 
 Execute the training script with default settings:
 
@@ -127,15 +272,7 @@ uv run python src/trainer.py --help
 - Training: batch size=2, gradient accumulation=8
 - No deprecation warnings - uses modern `SFTConfig` API
 
-#### 3. Test the Fine-Tuned Model
-
-Test the LoRA adapter with the base model:
-
-```bash
-uv run python test.py
-```
-
-#### 4. Merge Adapter with Base Model
+#### 3. Merge Adapter with Base Model
 
 To create a standalone merged model (without needing the adapter separately):
 
@@ -181,7 +318,7 @@ python convert_hf_to_gguf.py \
 
 Create a `Modelfile` in the project root:
 
-```
+```dockerfile
 FROM ./fine-tuned-model-f16.gguf
 PARAMETER temperature 0.7
 PARAMETER top_p 0.9
@@ -199,7 +336,7 @@ ollama run twinkle "Complete the rhyme: Twinkle, twinkle, little star,"
 
 ## Project Structure
 
-```
+```text
 .
 ├── data/
 │   └── train.jsonl               # Training dataset
@@ -210,7 +347,10 @@ ollama run twinkle "Complete the rhyme: Twinkle, twinkle, little star,"
 │   ├── adaptor/                  # LoRA adapter output
 │   ├── merged/                   # Merged model output
 │   └── gguf/                     # GGUF converted models
-├── train-and-convert.sh          # Automated pipeline script
+├── train-and-convert.sh          # 🚀 Automated pipeline script
+├── config.env                    # Pipeline configuration
+├── config.env.example            # Example configuration with documentation
+├── Modelfile                     # Auto-generated Ollama Modelfile
 ├── test.py                       # Test script for fine-tuned model
 ├── pyproject.toml                # UV/Python dependencies
 └── README.md                     # This file
@@ -218,13 +358,59 @@ ollama run twinkle "Complete the rhyme: Twinkle, twinkle, little star,"
 
 ## Key Features
 
-✅ **Automated Pipeline** - Single script to train, merge, and convert to GGUF  
+✅ **Automated Pipeline** - Single command to train, merge, and convert (`train-and-convert.sh`)  
+✅ **Configuration File Support** - Reusable configs with `config.env`  
+✅ **Auto-Generated Modelfile** - Ready-to-use Ollama Modelfile with correct paths  
+✅ **Flexible Quantization** - Support for f16, f32, q8_0, q4_0, and more  
 ✅ **Modern APIs** - Uses `SFTConfig` instead of deprecated `TrainingArguments`  
 ✅ **Apple Silicon Optimized** - MPS support for GPU acceleration on Mac  
 ✅ **No Warnings** - Clean training output without deprecation warnings  
 ✅ **Efficient Training** - LoRA enables fine-tuning with minimal memory  
-✅ **Flexible CLI** - Fully configurable via command-line arguments  
-✅ **Ollama Compatible** - Easy conversion to GGUF format  
+✅ **Skip Steps** - Re-run only specific parts of the pipeline  
+✅ **Ollama Ready** - Easy deployment to Ollama with one command  
+
+## Tips & Best Practices
+
+### Model Naming
+
+Use descriptive `MODEL_NAME` values in your config:
+
+```bash
+MODEL_NAME="rhyme-generator-v1"
+MODEL_NAME="sql-expert-tinyllama"
+MODEL_NAME="customer-support-bot"
+```
+
+### Quantization Choices
+
+- **f16**: Best quality, larger file size (~2.2GB for TinyLlama)
+- **q8_0**: Good quality, smaller size (~1.2GB)
+- **q4_0**: Smallest, faster inference, some quality loss (~600MB)
+
+### Multiple Experiments
+
+Create different config files for different experiments:
+
+```bash
+cp config.env experiments/rhyme-v1.env
+cp config.env experiments/rhyme-v2.env
+
+./train-and-convert.sh --config experiments/rhyme-v1.env
+./train-and-convert.sh --config experiments/rhyme-v2.env
+```
+
+### Re-running with Different Quantizations
+
+Save training time by skipping training and merge steps:
+
+```bash
+# Initial training
+./train-and-convert.sh --config config.env
+
+# Create additional quantized versions
+./train-and-convert.sh --config config.env --skip-training --skip-merge --gguf-outtype q8_0
+./train-and-convert.sh --config config.env --skip-training --skip-merge --gguf-outtype q4_0
+```
 
 ## Notes
 

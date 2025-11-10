@@ -2,19 +2,29 @@
 
 # Fine-tune, merge, and convert to GGUF pipeline script
 # Usage: ./train-and-convert.sh [options]
+# Or with config file: ./train-and-convert.sh --config config.env
 
 set -e  # Exit on error
 
 # Default values
+MODEL_NAME="fine-tuned-model"
 TRAIN_DATA="data/train.jsonl"
 LLAMA_CPP_PATH=""
 BASE_MODEL="TinyLlama/TinyLlama-1.1B-Chat-v1.0"
 EPOCHS=3
 LEARNING_RATE=2e-4
 MAX_SEQ_LENGTH=512
-ADAPTER_OUTPUT="outputs/adaptor/fine-tuned-model-mps"
-MERGED_OUTPUT="outputs/merged/merged-fine-tuned-model"
-GGUF_OUTPUT="outputs/gguf/fine-tuned-model-f16.gguf"
+GGUF_OUTTYPE="f16"
+ADAPTER_OUTPUT="outputs/adaptor/${MODEL_NAME}-mps"
+MERGED_OUTPUT="outputs/merged/merged-${MODEL_NAME}"
+GGUF_OUTPUT="outputs/gguf/${MODEL_NAME}-${GGUF_OUTTYPE}.gguf"
+SKIP_TRAINING=false
+SKIP_MERGE=false
+SKIP_GGUF=false
+CONFIG_FILE=""
+MODELFILE_TEMPERATURE=1
+MODELFILE_TOP_P=0.9
+MODELFILE_REPEAT_PENALTY=1.05
 
 # Colors for output
 RED='\033[0;31m'
@@ -34,6 +44,8 @@ This script runs the complete fine-tuning pipeline:
   3. Convert to GGUF format for Ollama
 
 Options:
+  --config FILE              Load configuration from file (see config.env.example)
+  --model-name NAME          Base name for your model (default: fine-tuned-model)
   --train-data PATH          Path to training data JSONL file (default: data/train.jsonl)
   --llama-cpp-path PATH      Path to llama.cpp directory (required for GGUF conversion)
   --base-model MODEL         Base model to fine-tune (default: TinyLlama/TinyLlama-1.1B-Chat-v1.0)
@@ -43,12 +55,16 @@ Options:
   --adapter-output PATH      Adapter output directory (default: outputs/adaptor/fine-tuned-model-mps)
   --merged-output PATH       Merged model output directory (default: outputs/merged/merged-fine-tuned-model)
   --gguf-output PATH         GGUF output file path (default: outputs/gguf/fine-tuned-model-f16.gguf)
+  --gguf-outtype TYPE        GGUF quantization type: f32, f16, q8_0, q4_0, etc. (default: f16)
   --skip-training            Skip training step (use existing adapter)
   --skip-merge               Skip merge step (use existing merged model)
   --skip-gguf                Skip GGUF conversion step
   -h, --help                 Show this help message
 
 Examples:
+  # Using config file (recommended)
+  ./train-and-convert.sh --config my-config.env
+
   # Full pipeline with default settings
   ./train-and-convert.sh --llama-cpp-path /path/to/llama.cpp
 
@@ -60,16 +76,23 @@ Examples:
 
   # Skip training, only merge and convert existing adapter
   ./train-and-convert.sh --skip-training --llama-cpp-path /path/to/llama.cpp
+
+  # Config file with command-line override
+  ./train-and-convert.sh --config my-config.env --epochs 5
 EOF
 }
 
 # Parse command line arguments
-SKIP_TRAINING=false
-SKIP_MERGE=false
-SKIP_GGUF=false
-
 while [[ $# -gt 0 ]]; do
     case $1 in
+        --config)
+            CONFIG_FILE="$2"
+            shift 2
+            ;;
+        --model-name)
+            MODEL_NAME="$2"
+            shift 2
+            ;;
         --train-data)
             TRAIN_DATA="$2"
             shift 2
@@ -106,6 +129,10 @@ while [[ $# -gt 0 ]]; do
             GGUF_OUTPUT="$2"
             shift 2
             ;;
+        --gguf-outtype)
+            GGUF_OUTTYPE="$2"
+            shift 2
+            ;;
         --skip-training)
             SKIP_TRAINING=true
             shift
@@ -130,10 +157,26 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Load config file if specified
+if [ -n "$CONFIG_FILE" ]; then
+    if [ ! -f "$CONFIG_FILE" ]; then
+        echo -e "${RED}Error: Config file not found: $CONFIG_FILE${NC}"
+        exit 1
+    fi
+    echo -e "${BLUE}Loading configuration from: ${CONFIG_FILE}${NC}"
+    # Source the config file (safely)
+    set -a  # Export all variables
+    source "$CONFIG_FILE"
+    set +a
+    echo -e "${GREEN}✓ Configuration loaded${NC}"
+    echo ""
+fi
+
 # Print configuration
 echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
 echo -e "${BLUE}  Fine-Tuning Pipeline Configuration${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
+echo -e "Model name:         ${GREEN}$MODEL_NAME${NC}"
 echo -e "Training data:      ${GREEN}$TRAIN_DATA${NC}"
 echo -e "Base model:         ${GREEN}$BASE_MODEL${NC}"
 echo -e "Epochs:             ${GREEN}$EPOCHS${NC}"
@@ -142,6 +185,7 @@ echo -e "Max seq length:     ${GREEN}$MAX_SEQ_LENGTH${NC}"
 echo -e "Adapter output:     ${GREEN}$ADAPTER_OUTPUT${NC}"
 echo -e "Merged output:      ${GREEN}$MERGED_OUTPUT${NC}"
 echo -e "GGUF output:        ${GREEN}$GGUF_OUTPUT${NC}"
+echo -e "GGUF outtype:       ${GREEN}$GGUF_OUTTYPE${NC}"
 echo -e "llama.cpp path:     ${GREEN}${LLAMA_CPP_PATH:-Not set}${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
 echo ""
@@ -216,7 +260,7 @@ if [ "$SKIP_GGUF" = false ]; then
     
     python "$LLAMA_CPP_PATH/convert_hf_to_gguf.py" \
         "$MERGED_OUTPUT" \
-        --outtype f16 \
+        --outtype "$GGUF_OUTTYPE" \
         --outfile "$GGUF_OUTPUT"
     
     if [ $? -eq 0 ]; then
@@ -239,10 +283,32 @@ echo -e "  Adapter:      ${GREEN}$ADAPTER_OUTPUT${NC}"
 echo -e "  Merged model: ${GREEN}$MERGED_OUTPUT${NC}"
 if [ "$SKIP_GGUF" = false ]; then
     echo -e "  GGUF file:    ${GREEN}$GGUF_OUTPUT${NC}"
+    
+    # Generate Modelfile
+    echo ""
+    echo -e "${BLUE}Generating Modelfile...${NC}"
+    
+    # Convert to absolute path if relative
+    if [[ "$GGUF_OUTPUT" = /* ]]; then
+        GGUF_ABSOLUTE_PATH="$GGUF_OUTPUT"
+    else
+        GGUF_ABSOLUTE_PATH="$(pwd)/$GGUF_OUTPUT"
+    fi
+    
+    cat > Modelfile << EOF
+FROM ${GGUF_ABSOLUTE_PATH}
+
+PARAMETER temperature ${MODELFILE_TEMPERATURE}
+PARAMETER top_p ${MODELFILE_TOP_P}
+PARAMETER repeat_penalty ${MODELFILE_REPEAT_PENALTY}
+EOF
+    
+    echo -e "${GREEN}✓ Modelfile generated${NC}"
     echo ""
     echo -e "Next steps:"
-    echo -e "  1. Test with Ollama:"
+    echo -e "  1. Create Ollama model:"
     echo -e "     ${YELLOW}ollama create my-model -f Modelfile${NC}"
+    echo -e "  2. Run the model:"
     echo -e "     ${YELLOW}ollama run my-model \"Your prompt here\"${NC}"
 fi
 echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
