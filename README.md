@@ -42,70 +42,7 @@ This will install:
 
 ## Quick Start: Automated Pipeline 🚀
 
-> **Note:** The automated pipeline (`train-and-convert.sh`) handles all these steps automatically and is the recommended approach.
-
----
-
-## Usage Guide
-
-### Test Your Model
-
-#### Test with CLI
-
-```bash
-# Default test
-tuneforge test
-
-# Custom prompt  
-tuneforge test --prompt "Write a poem about the moon"
-
-# Test different model
-tuneforge test --model outputs/merged/my-other-model
-```
-
-#### Test with Python Script
-
-Test the merged model directly with Python:
-
-```bash
-# Default test with sample prompt
-uv run python test.py
-
-# Custom prompt
-uv run python test.py --prompt "Write a poem about the moon"
-
-# Test a different model
-uv run python test.py --model outputs/merged/my-other-model
-
-# Adjust generation parameters
-uv run python test.py --max-tokens 100 --temperature 0.9
-
-# Get help
-uv run python test.py --help
-```
-
-**Available arguments:**
-
-- `--model` - Path to merged model directory (default: `outputs/merged/merged-fine-tuned-model`)
-- `--prompt` - Custom prompt to test (default: rhyme completion)
-- `--max-tokens` - Maximum tokens to generate (default: 50)
-- `--temperature` - Sampling temperature, 0 for greedy decoding (default: 0.7)
-
-#### Test with Ollama
-
-After running the pipeline, test with Ollama:
-
-```bash
-# The pipeline auto-generates the Modelfile
-ollama create my-model -f Modelfile
-ollama run my-model "Write a rhyme about stars"
-```
-
----
-
-## Quick Start: Automated Pipeline 🚀
-
-**The recommended way to fine-tune a model is using the TuneForge CLI.** The pipeline handles the entire workflow from training to deployment with a single command.
+**The recommended way to fine-tuning a model is using the TuneForge CLI.** The pipeline handles the entire workflow from training to deployment with a single command.
 
 ### What the Pipeline Does
 
@@ -213,9 +150,9 @@ ollama create my-custom-model -f Modelfile
 ollama run my-custom-model "Your prompt here"
 ```
 
-### Advanced Usage Examples
+## Advanced Usage Examples
 
-#### CLI: Running Individual Steps
+### CLI Examples
 
 ```bash
 # Train with custom parameters
@@ -239,17 +176,7 @@ tuneforge convert \
   --llama-cpp-path /path/to/llama.cpp \
   --outtype f16
 
-tuneforge convert \
-  --model outputs/merged/my-7b-model \
-  --output outputs/gguf/my-model-q8.gguf \
-  --llama-cpp-path /path/to/llama.cpp \
-  --outtype q8_0
-```
-
-#### CLI: Pipeline with Options
-
-```bash
-# Complete pipeline with CLI
+# Complete pipeline with options
 tuneforge pipeline \
   --model-name my-assistant \
   --epochs 5 \
@@ -260,7 +187,7 @@ tuneforge pipeline \
 tuneforge pipeline --config config.env --skip-training --skip-merge
 ```
 
-#### Shell Script: Command-Line Arguments
+### Shell Script Examples
 
 ```bash
 # Minimal - uses defaults for most settings
@@ -278,88 +205,19 @@ tuneforge pipeline --config config.env --skip-training --skip-merge
   --max-seq-length 1024 \
   --gguf-outtype q8_0 \
   --llama-cpp-path /path/to/llama.cpp
-```
 
-#### Shell Script: Config File with Overrides
-
-```bash
 # Use config.env but override specific settings
 ./train-and-convert.sh --config config.env --epochs 5 --gguf-outtype q4_0
 
-# Override model name for a different variant
-./train-and-convert.sh --config config.env --model-name my-model-v2
-```
-
-#### Skip Steps (Partial Pipeline)
-
-```bash
 # Only merge and convert (skip training)
 ./train-and-convert.sh --config config.env --skip-training
 
-# Only training and merging (skip GGUF conversion)
-./train-and-convert.sh --config config.env --skip-gguf
-
-# Only convert existing merged model to GGUF
-./train-and-convert.sh \
-  --skip-training \
-  --skip-merge \
-  --merged-output outputs/merged/my-existing-model \
-  --llama-cpp-path /path/to/llama.cpp
-```
-
-#### Multiple Quantization Versions
-
-Using CLI:
-
-```bash
-# Initial training and f16
-tuneforge pipeline --config config.env
-
-# Create q8_0 version (reuse trained model)
-tuneforge convert \
-  --model outputs/merged/my-model \
-  --output outputs/gguf/my-model-q8_0.gguf \
-  --llama-cpp-path /path/to/llama.cpp \
-  --outtype q8_0
-
-# Create q4_0 version
-tuneforge convert \
-  --model outputs/merged/my-model \
-  --output outputs/gguf/my-model-q4_0.gguf \
-  --llama-cpp-path /path/to/llama.cpp \
-  --outtype q4_0
-```
-
-Using shell script:
-
-```bash
-# Create f16 version (high quality)
-./train-and-convert.sh --config config.env --skip-training --gguf-outtype f16
-
-# Create q8_0 version (smaller, good quality)
+# Create multiple quantization versions
 ./train-and-convert.sh --config config.env --skip-training --skip-merge --gguf-outtype q8_0
-
-# Create q4_0 version (smallest, faster inference)
 ./train-and-convert.sh --config config.env --skip-training --skip-merge --gguf-outtype q4_0
 ```
 
-### Pipeline Output
-
-After successful completion, you'll have:
-
-```text
-outputs/
-├── adaptor/
-│   └── my-custom-model-mps/     # LoRA adapter
-├── merged/
-│   └── merged-my-custom-model/  # Merged model
-└── gguf/
-    └── my-custom-model-f16.gguf # GGUF for Ollama
-
-Modelfile                        # Auto-generated, ready to use
-```
-
-### Configuration Variables Reference
+## Configuration Variables Reference
 
 | Variable | Description | Default |
 |----------|-------------|---------|
@@ -378,15 +236,105 @@ Modelfile                        # Auto-generated, ready to use
 | `SKIP_MERGE` | Skip merge step | `false` |
 | `SKIP_GGUF` | Skip GGUF conversion | `false` |
 
-### Get Help
+## Testing Your Model
 
-View all available options:
+### CLI Testing
 
 ```bash
-./train-and-convert.sh --help
+# Default test
+tuneforge test
+
+# Custom prompt  
+tuneforge test --prompt "Write a poem about the moon"
+
+# Test different model
+tuneforge test --model outputs/merged/my-other-model
+
+# Adjust generation parameters
+tuneforge test --max-tokens 100 --temperature 0.9
 ```
 
----
+### Python Script Testing
+
+Test the merged model directly with Python:
+
+```bash
+# Default test with sample prompt
+uv run python test.py
+
+# Custom prompt
+uv run python test.py --prompt "Write a poem about the moon"
+
+# Test a different model
+uv run python test.py --model outputs/merged/my-other-model
+
+# Adjust generation parameters
+uv run python test.py --max-tokens 100 --temperature 0.9
+
+# Get help
+uv run python test.py --help
+```
+
+**Available arguments:**
+
+- `--model` - Path to merged model directory (default: `outputs/merged/merged-fine-tuned-model`)
+- `--prompt` - Custom prompt to test (default: rhyme completion)
+- `--max-tokens` - Maximum tokens to generate (default: 50)
+- `--temperature` - Sampling temperature, 0 for greedy decoding (default: 0.7)
+
+### Ollama Testing
+
+After running the pipeline, test with Ollama:
+
+```bash
+# The pipeline auto-generates the Modelfile
+ollama create my-model -f Modelfile
+ollama run my-model "Write a rhyme about stars"
+```
+
+## Model Evaluation
+
+### Create Evaluation Dataset
+
+Transform your training data into evaluation format:
+
+```bash
+# Create evaluation dataset
+uv run python scripts/create_eval_dataset.py \
+  --input data/qa-training.jsonl \
+  --output data/qa-eval.jsonl
+```
+
+### Run Ollama Evaluation
+
+Test your fine-tuned model against the evaluation dataset:
+
+```bash
+# Run full evaluation
+uv run python scripts/create_eval_dataset.py \
+  --input data/qa-training.jsonl \
+  --output data/qa-eval-results.jsonl \
+  --run-ollama \
+  --model qa-model:latest
+
+# Quick test with samples
+uv run python scripts/create_eval_dataset.py \
+  --input data/qa-training.jsonl \
+  --output data/qa-eval-results.jsonl \
+  --run-ollama \
+  --model qa-model:latest \
+  --sample 3
+```
+
+The evaluation script will:
+
+- Query your Ollama model with each test case
+- Capture actual responses
+- Compare against expected outputs
+- Track success rate and response times
+- Generate detailed results in JSONL format
+
+See `scripts/README.md` for more details on evaluation.
 
 ## Manual Steps (Advanced)
 
@@ -434,12 +382,6 @@ uv run python src/trainer.py \
 - `--epochs` - Number of training epochs (default: `3`)
 - `--learning-rate` - Learning rate (default: `2e-4`)
 
-Use `--help` to see all options:
-
-```bash
-uv run python src/trainer.py --help
-```
-
 **What happens during training:**
 
 - Load the base model `TinyLlama/TinyLlama-1.1B-Chat-v1.0`
@@ -447,14 +389,7 @@ uv run python src/trainer.py --help
 - Train on your dataset
 - Save the LoRA adapter to the specified output directory
 
-**Configuration:**
-
-- Uses MPS (Metal Performance Shaders) for Apple Silicon GPU acceleration
-- LoRA parameters: rank=16, alpha=32, dropout=0.05
-- Training: batch size=2, gradient accumulation=8
-- No deprecation warnings - uses modern `SFTConfig` API
-
-#### 3. Merge Adapter with Base Model
+### 3. Merge Adapter with Base Model
 
 To create a standalone merged model (without needing the adapter separately):
 
@@ -471,13 +406,9 @@ uv run python src/merge.py \
   --output outputs/merged/merged-fine-tuned-model
 ```
 
-This creates a merged model in `/output/fine-tuned-model/` directory.
-
-## Creating GGUF Model for Ollama
+### 4. Create GGUF Model for Ollama
 
 To create a GGUF file compatible with Ollama, you need utilities from `llama.cpp`:
-
-### Install llama.cpp
 
 ```bash
 git clone https://github.com/ggerganov/llama.cpp
@@ -491,117 +422,9 @@ python convert_hf_to_gguf.py \
   --outfile outputs/gguf/fine-tuned-model-f16.gguf
 ```
 
-> **Note:** The TuneForge CLI and automated pipeline handle all these steps automatically.
-
----
-
-## Model Testing and Deployment
-
-### Testing
-
-#### With CLI
-
-```bash
-# Default test
-tuneforge test
-
-# Custom prompt
-tuneforge test --prompt "Write a poem about the moon"
-
-# Test different model
-tuneforge test --model outputs/merged/my-other-model
-
-# Adjust generation parameters
-tuneforge test --max-tokens 100 --temperature 0.9
-```
-
-#### With Python Script
-
-```bash
-# Default test
-uv run python test.py
-
-# Custom prompt
-uv run python test.py --prompt "Write a poem about the moon"
-
-# Test different model
-uv run python test.py --model outputs/merged/my-other-model
-
-# Adjust generation parameters
-uv run python test.py --max-tokens 100 --temperature 0.9
-
-# Get help
-uv run python test.py --help
-```
-
-**Available arguments:**
-
-- `--model` - Path to merged model directory (default: `outputs/merged/merged-fine-tuned-model`)
-- `--prompt` - Custom prompt to test (default: rhyme completion)
-- `--max-tokens` - Maximum tokens to generate (default: 50)
-- `--temperature` - Sampling temperature, 0 for greedy decoding (default: 0.7)
-
-#### With Ollama
-
-After running the pipeline, test with Ollama:
-
-```bash
-# The pipeline auto-generates the Modelfile
-ollama create my-model -f Modelfile
-ollama run my-model "Write a rhyme about stars"
-```
-
-### Evaluation
-
-#### Create Evaluation Dataset
-
-Transform your training data into evaluation format:
-
-```bash
-# Create evaluation dataset
-uv run python scripts/create_eval_dataset.py \
-  --input data/qa-training.jsonl \
-  --output data/qa-eval.jsonl
-```
-
-#### Run Ollama Evaluation
-
-Test your fine-tuned model against the evaluation dataset:
-
-```bash
-# Run full evaluation
-uv run python scripts/create_eval_dataset.py \
-  --input data/qa-training.jsonl \
-  --output data/qa-eval-results.jsonl \
-  --run-ollama \
-  --model qa-model:latest
-
-# Quick test with samples
-uv run python scripts/create_eval_dataset.py \
-  --input data/qa-training.jsonl \
-  --output data/qa-eval-results.jsonl \
-  --run-ollama \
-  --model qa-model:latest \
-  --sample 3
-```
-
-The evaluation script will:
-
-- Query your Ollama model with each test case
-- Capture actual responses
-- Compare against expected outputs
-- Track success rate and response times
-- Generate detailed results in JSONL format
-
-See `scripts/README.md` for more details on evaluation.
-
----
-
-### Deployment
-
 ## Deploy to Ollama
 
-### 1. Create a Modelfile (Auto-Generated)
+### 1. Create a Modelfile
 
 The pipeline automatically generates a `Modelfile` with the correct path:
 
@@ -630,48 +453,6 @@ ollama create twinkle -f Modelfile
 ollama run twinkle "Complete the rhyme: Twinkle, twinkle, little star,"
 ```
 
----
-
-## Project Files
-
-```text
-TuneForge/
-├── tuneforge/
-│   ├── __init__.py               # Package initialization
-│   └── cli.py                    # 🔨 CLI command interface
-├── data/
-│   └── train.jsonl               # Training dataset
-├── src/
-│   ├── trainer.py                # Training script
-│   └── merge.py                  # Merge adapter with base model
-├── outputs/
-│   ├── adaptor/                  # LoRA adapter output
-│   ├── merged/                   # Merged model output
-│   └── gguf/                     # GGUF converted models
-├── train-and-convert.sh          # Shell script (alternative to CLI)
-├── config.env                    # Pipeline configuration
-├── config.env.example            # Example configuration with documentation
-├── Modelfile                     # Auto-generated Ollama Modelfile
-├── test.py                       # Test script for models
-├── pyproject.toml                # Package definition and dependencies
-├── .gitignore                    # Git ignore patterns
-└── README.md                     # This file
-```
-
-## Key Features
-
-✅ **Modular CLI** - `tuneforge train`, `tuneforge merge`, `tuneforge convert`, `tuneforge test`  
-✅ **One-Command Pipeline** - Complete workflow with `tuneforge pipeline`  
-✅ **Configuration File Support** - Reusable configs with `config.env`  
-✅ **Auto-Generated Modelfile** - Ready-to-use Ollama Modelfile with correct paths  
-✅ **Flexible Quantization** - Support for f16, f32, q8_0, q4_0, and more  
-✅ **Modern APIs** - Uses `SFTConfig` instead of deprecated `TrainingArguments`  
-✅ **Apple Silicon Optimized** - MPS support for GPU acceleration on Mac  
-✅ **No Warnings** - Clean training output without deprecation warnings  
-✅ **Efficient Training** - LoRA enables fine-tuning with minimal memory  
-✅ **Skip Steps** - Re-run only specific parts of the pipeline  
-✅ **Ollama Ready** - Easy deployment to Ollama with one command  
-
 ## CLI Commands Reference
 
 | Command | Description |
@@ -688,6 +469,34 @@ For detailed help on any command:
 tuneforge --help
 tuneforge train --help
 tuneforge convert --help
+```
+
+## Project Structure
+
+```text
+TuneForge/
+├── tuneforge/
+│   ├── __init__.py               # Package initialization
+│   └── cli.py                    # CLI command interface
+├── data/
+│   └── train.jsonl               # Training dataset
+├── src/
+│   ├── trainer.py                # Training script
+│   └── merge.py                  # Merge adapter with base model
+├── scripts/
+│   ├── create_eval_dataset.py    # Evaluation utilities
+│   └── README.md                 # Scripts documentation
+├── outputs/
+│   ├── adaptor/                  # LoRA adapter output
+│   ├── merged/                   # Merged model output
+│   └── gguf/                     # GGUF converted models
+├── train-and-convert.sh          # Shell script (alternative to CLI)
+├── config.env                    # Pipeline configuration
+├── config.env.example            # Example configuration with documentation
+├── Modelfile                     # Auto-generated Ollama Modelfile
+├── test.py                       # Test script for models
+├── pyproject.toml                # Package definition and dependencies
+└── README.md                     # This file
 ```
 
 ## Tips & Best Practices
@@ -733,8 +542,6 @@ tuneforge convert --model outputs/merged/my-model --output outputs/gguf/my-model
 tuneforge convert --model outputs/merged/my-model --output outputs/gguf/my-model-q4_0.gguf --llama-cpp-path /path/to/llama.cpp --outtype q4_0
 ```
 
----
-
 ## Quick Reference
 
 ### Essential Commands
@@ -752,18 +559,6 @@ tuneforge test --model outputs/merged/model --prompt "Your prompt"
 # Deploy to Ollama
 ollama create my-model -f Modelfile
 ollama run my-model "Your prompt"
-```
-
-### Configuration File Structure
-
-```bash
-MODEL_NAME="your-model-name"          # Base name for outputs
-TRAIN_DATA="data/train.jsonl"         # Training dataset
-BASE_MODEL="TinyLlama/..."            # HuggingFace model ID
-EPOCHS=3                               # Training epochs
-LEARNING_RATE=2e-4                     # Learning rate
-GGUF_OUTTYPE="f16"                     # Quantization: f16, q8_0, q4_0, etc.
-LLAMA_CPP_PATH="/path/to/llama.cpp"   # Required for GGUF conversion
 ```
 
 ### Common Workflows
