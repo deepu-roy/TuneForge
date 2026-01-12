@@ -20,11 +20,24 @@ def run_command(cmd, description):
     print(f"Running: {' '.join(cmd)}")
     print("-" * 60)
 
-    result = subprocess.run(cmd, cwd=get_project_root())
+    result = subprocess.run(
+        cmd, 
+        cwd=get_project_root(),
+        capture_output=True,
+        text=True
+    )
 
     if result.returncode != 0:
         print(f"\n❌ Failed: {description}")
+        if result.stderr:
+            print(f"Error details:\n{result.stderr}")
+        if result.stdout:
+            print(f"Output:\n{result.stdout}")
         sys.exit(result.returncode)
+
+    # Print stdout if available
+    if result.stdout:
+        print(result.stdout)
 
     print(f"\n✅ Completed: {description}")
     return result.returncode

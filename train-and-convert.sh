@@ -27,6 +27,7 @@ CONFIG_FILE=""
 MODELFILE_TEMPERATURE=1
 MODELFILE_TOP_P=0.9
 MODELFILE_REPEAT_PENALTY=1.05
+SYSTEM_MESSAGE="You are a helpful AI assistant."
 
 # Colors for output
 RED='\033[0;31m'
@@ -169,6 +170,21 @@ if [ -n "$CONFIG_FILE" ]; then
         exit 1
     fi
     echo -e "${BLUE}Loading configuration from: ${CONFIG_FILE}${NC}"
+    
+    # Validate config file format before sourcing (security check)
+    if ! grep -qE '^[A-Z_]+=' "$CONFIG_FILE" 2>/dev/null; then
+        echo -e "${RED}Error: Config file appears to be empty or invalid${NC}"
+        exit 1
+    fi
+    
+    # Check for dangerous patterns (semicolons, backticks, command substitution with $())
+    # Allow ${VAR} for variable substitution but block $() and backticks
+    if grep -qE '[;`]|\$\(.*\)' "$CONFIG_FILE" 2>/dev/null; then
+        echo -e "${RED}Error: Config file contains suspicious characters${NC}"
+        echo -e "${YELLOW}Config files should only contain KEY=VALUE pairs${NC}"
+        exit 1
+    fi
+    
     # Source the config file (safely)
     set -a  # Export all variables
     source "$CONFIG_FILE"
@@ -303,9 +319,22 @@ if [ "$SKIP_GGUF" = false ]; then
     cat > Modelfile << EOF
 FROM ${GGUF_ABSOLUTE_PATH}
 
+TEMPLATE """<|system|>
+{{ .System }}</s>
+<|user|>
+{{ .Prompt }}</s>
+<|assistant|>
+"""
+SYSTEM """${SYSTEM_MESSAGE}"""
+
+
 PARAMETER temperature ${MODELFILE_TEMPERATURE}
 PARAMETER top_p ${MODELFILE_TOP_P}
 PARAMETER repeat_penalty ${MODELFILE_REPEAT_PENALTY}
+PARAMETER stop "<|system|>"
+PARAMETER stop "<|user|>"
+PARAMETER stop "<|assistant|>"
+PARAMETER stop "</s>"
 EOF
     
     echo -e "${GREEN}✓ Modelfile generated${NC}"

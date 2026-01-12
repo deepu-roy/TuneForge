@@ -44,6 +44,10 @@ This will install:
 
 **The recommended way to fine-tuning a model is using the TuneForge CLI.** The pipeline handles the entire workflow from training to deployment with a single command.
 
+### Install the app to run CLI commands
+
+`pip install -e .`
+
 ### What the Pipeline Does
 
 TuneForge automatically:
