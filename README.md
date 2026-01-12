@@ -40,6 +40,32 @@ This will install:
 - `accelerate>=0.34`
 - `trl>=0.9.6` (for SFTTrainer)
 
+## Training Data Format 📝
+
+**Important:** TuneForge requires pre-formatted training data with special tokens. The trainer does not convert or validate data - it expects the exact format below.
+
+### Required Format
+
+Each line in your JSONL file must be a single JSON object with a `"text"` field containing special tokens:
+
+```json
+{"text":"<|system|>System prompt here</s><|user|>User question</s><|assistant|>Assistant response</s>"}
+```
+
+### Special Tokens
+
+- `<|system|>` - Starts the system message (optional but recommended)
+- `<|user|>` - Starts the user message
+- `<|assistant|>` - Starts the assistant response
+- `</s>` - End-of-sequence token (required after each section)
+
+### Example Training Data
+
+```json
+{"text":"<|system|>You are a helpful coding assistant.</s><|user|>How do I reverse a string in Python?</s><|assistant|>You can reverse a string using slicing: `my_string[::-1]`</s>"}
+{"text":"<|system|>You are a helpful coding assistant.</s><|user|>What is a list comprehension?</s><|assistant|>A list comprehension is a concise way to create lists: `[x*2 for x in range(10)]`</s>"}
+```
+
 ## Quick Start: Automated Pipeline 🚀
 
 **The recommended way to fine-tuning a model is using the TuneForge CLI.** The pipeline handles the entire workflow from training to deployment with a single command.
@@ -346,16 +372,22 @@ If you prefer to run each step manually instead of using the automated pipeline:
 
 ### 1. Prepare Training Data
 
+**Important:** Training data must be pre-formatted with special tokens. The trainer no longer converts or validates data format.
+
 Create your training data in `./data/train.jsonl` with the following format:
 
 ```json
-{"messages":[
-  {"role":"user","content":"Your prompt here"},
-  {"role":"assistant","content":"Expected response"}
-]}
+{"text":"<|system|>You are a helpful assistant.</s><|user|>Your prompt here</s><|assistant|>Expected response</s>"}
 ```
 
-Example data is already provided for training on "Twinkle Twinkle Little Star" rhymes.
+**Format Requirements:**
+
+- Each line must be a single JSON object with a `"text"` field
+- Include special tokens: `<|system|>`, `<|user|>`, `<|assistant|>`, and `</s>`
+- All content must be on a single line (no multi-line strings)
+- System message is optional but recommended for context
+
+Example data is already provided in the correct format.
 
 ### 2. Run the Trainer
 
@@ -585,6 +617,8 @@ tuneforge test --model outputs/merged/model --prompt "Test prompt"
 ## Technical Notes
 
 - **Base Model**: `TinyLlama/TinyLlama-1.1B-Chat-v1.0` (1.1B parameters) - easily adaptable to other models
+- **Training Data Format**: Data must be pre-formatted with special tokens (`<|system|>`, `<|user|>`, `<|assistant|>`, `</s>`)
+- **No Data Conversion**: The trainer loads data as-is without any formatting or validation
 - **LoRA Adapters**: Add only ~1-5% additional parameters for efficient fine-tuning
 - **Apple Silicon**: Uses float32 for MPS compatibility, GPU-accelerated training
 - **No Warnings**: Modern `SFTConfig` API eliminates deprecation warnings
