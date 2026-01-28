@@ -331,18 +331,17 @@ SYSTEM """${SYSTEM_MESSAGE}"""
 PARAMETER temperature ${MODELFILE_TEMPERATURE}
 PARAMETER top_p ${MODELFILE_TOP_P}
 PARAMETER repeat_penalty ${MODELFILE_REPEAT_PENALTY}
-PARAMETER top_k 40
+PARAMETER top_k 0
 
-PARAMETER repeat_penalty 1.3
 PARAMETER repeat_last_n 256
-PARAMETER presence_penalty 0.6
-PARAMETER frequency_penalty 0.4
+PARAMETER presence_penalty 0.0
+PARAMETER frequency_penalty 0.0
 
-PARAMETER mirostat 2
+PARAMETER mirostat 0
 PARAMETER mirostat_tau 5
 PARAMETER mirostat_eta 0.1
 
-PARAMETER num_predict 512
+PARAMETER num_predict 256
 
 EOF
     
